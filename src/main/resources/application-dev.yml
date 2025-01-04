@@ -1,0 +1,46 @@
+micronaut:
+  application:
+    name: student_micronaut
+  netty:
+    event-loops:
+      boss:
+        num-threads: 1
+      worker:
+        num-threads: 8
+  server:
+    port: 8081
+
+  test:
+    resources:
+      enabled: true
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+      url: jdbc:postgresql://localhost:5432/student
+      user: student
+      password: student
+
+datasources:
+  default:
+    enabled: false
+
+r2dbc:
+  datasources:
+    default:
+      url: r2dbc:postgresql://localhost:5432/student
+      username: student
+      password: student
+
+jpa:
+  default:
+    reactive: true
+    properties:
+      hibernate:
+        connection.url: postgresql://localhost:5432/student
+        connection.username: student
+        connection.password: student
+        show_sql: true
+        format_sql: true
+

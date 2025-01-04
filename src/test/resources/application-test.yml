@@ -1,0 +1,24 @@
+micronaut:
+  application:
+    name: student_micronaut
+  test:
+    resources:
+      enabled: true
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+
+datasources:
+  default:
+    enabled: false
+
+jpa:
+  default:
+    reactive: true
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+

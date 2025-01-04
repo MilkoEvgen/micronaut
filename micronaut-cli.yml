@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.milko
+testFramework: junit
+sourceLanguage: java
+buildTool: maven
+features: [app-name, data, data-hibernate-reactive, flyway, http-client-test, jackson-databind, java, java-application, jdbc-hikari, junit, logback, lombok, maven, maven-enforcer-plugin, micronaut-aot, micronaut-http-validation, mockito, netty-server, postgres, reactor, readme, shade, static-resources, test-resources, yaml, yaml-build]
