@@ -1,45 +1,31 @@
 package com.milko.repository;
 
 import com.milko.model.Department;
-import com.milko.model.Teacher;
 import io.micronaut.data.annotation.Query;
-import io.micronaut.data.annotation.Repository;
+import io.micronaut.data.model.query.builder.sql.Dialect;
+import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactorCrudRepository;
-import jakarta.annotation.Nullable;
+import lombok.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@Repository
+@R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface DepartmentRepository extends ReactorCrudRepository<Department, Long> {
 
     @Query("""
-                SELECT d FROM Department d
-                LEFT JOIN d.headOfDepartment h
-                WHERE h.id = :headOfDepartmentId
+                SELECT *
+                FROM departments d
+                WHERE d.head_of_department_id = :headOfDepartmentId
             """)
-    Mono<Department> findByHeadOfDepartmentId(Long headOfDepartmentId);
+    Mono<Department> findByHeadOfDepartmentId(@NonNull Long headOfDepartmentId);
 
     @Query("""
-                SELECT d FROM Department d
-                LEFT JOIN d.headOfDepartment h
-                WHERE h.id IN :headOfDepartmentIds
+                SELECT DISTINCT d.id, d.name, d.head_of_department_id
+                FROM departments d
+                WHERE d.head_of_department_id IN (:headOfDepartmentIds)
             """)
-    Flux<Department> findAllByHeadOfDepartmentIds(List<Long> headOfDepartmentIds);
+    Flux<Department> findAllByHeadOfDepartmentIds(@NonNull List<Long> headOfDepartmentIds);
 
-    @Query("""
-                UPDATE Department d
-                SET
-                    d.name = COALESCE(:name, d.name)
-                WHERE d.id = :departmentId
-            """)
-    Mono<Void> updateDepartment(Long departmentId, @Nullable String name);
-
-    @Query("""
-                UPDATE Department d
-                SET d.headOfDepartment = :teacher
-                WHERE d.id = :departmentId
-            """)
-    Mono<Void> setTeacherToDepartment(Long departmentId, Teacher teacher);
 }

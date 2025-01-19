@@ -9,8 +9,6 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "jsr330")
 public interface TeacherMapper {
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "department", ignore = true)
-    @Mapping(target = "courses", ignore = true)
     void updateFromDto(TeacherDto dto, @MappingTarget Teacher teacher);
 
     Teacher toTeacher(TeacherDto dto);

@@ -1,32 +1,23 @@
 package com.milko.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import io.micronaut.data.annotation.GeneratedValue;
+import io.micronaut.data.annotation.Id;
+import io.micronaut.data.annotation.MappedEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.Set;
+import lombok.ToString;
 
 @Getter
 @Setter
-@Entity
-@Table(name = "teachers")
+@ToString
+@MappedEntity(value = "teachers")
 public class Teacher {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(GeneratedValue.Type.IDENTITY)
     private Long id;
 
     private String name;
-
-    @OneToMany(mappedBy = "teacher", fetch = FetchType.LAZY)
-    private Set<Course> courses;
-
-    @OneToOne(mappedBy = "headOfDepartment", fetch = FetchType.LAZY)
-    private Department department;
 }

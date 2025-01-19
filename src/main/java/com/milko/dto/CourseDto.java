@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.Set;
+import java.util.List;
 
 @Getter
 @Setter
@@ -19,5 +19,5 @@ public class CourseDto {
     private Long id;
     private String title;
     private TeacherDto teacher;
-    private Set<StudentDto> students;
+    private List<StudentDto> students;
 }

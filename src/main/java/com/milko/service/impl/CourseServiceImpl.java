@@ -3,6 +3,7 @@ package com.milko.service.impl;
 import com.milko.dto.CourseDto;
 import com.milko.dto.StudentDto;
 import com.milko.dto.TeacherDto;
+import com.milko.dto.records.CourseStudentsView;
 import com.milko.exception.EntityNotFoundException;
 import com.milko.mapper.CourseMapper;
 import com.milko.mapper.StudentMapper;
@@ -15,14 +16,16 @@ import com.milko.repository.StudentRepository;
 import com.milko.repository.TeacherRepository;
 import com.milko.service.CourseService;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +47,7 @@ public class CourseServiceImpl implements CourseService {
                 .map(courseMapper::toCourseDto);
     }
 
+    @Transactional
     @Override
     public Mono<CourseDto> update(CourseDto dto) {
         log.info("in update, dto = {}", dto);
@@ -51,13 +55,13 @@ public class CourseServiceImpl implements CourseService {
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Course with ID " + dto.getId() + " not found")))
                 .flatMap(course -> {
                     courseMapper.updateFromDto(dto, course);
-                    return courseRepository.updateCourse(dto.getId(), dto.getTitle())
-                            .thenReturn(course);
+                    return courseRepository.update(course);
                 })
                 .flatMap(this::fetchRelatedEntitiesForCourse)
                 .map(this::buildCourseDto);
     }
 
+    @Transactional
     @Override
     public Mono<CourseDto> findById(Long id) {
         log.info("in findById, id = {}", id);
@@ -67,13 +71,56 @@ public class CourseServiceImpl implements CourseService {
                 .map(this::buildCourseDto);
     }
 
+    @Transactional
     @Override
     public Flux<CourseDto> findAll() {
         log.info("in findAll");
+
         return courseRepository.findAll()
-                .flatMap(this::fetchRelatedEntitiesForCourse)
-                .map(this::buildCourseDto);
+                .collectList()
+                .flatMap(courses -> {
+                    List<Long> coursesId = courses.stream()
+                            .map(Course::getId)
+                            .toList();
+
+                    return teacherRepository.findAllByCoursesIdList(coursesId)
+                            .collectList()
+                            .flatMap(teachers -> {
+                                Map<Long, Teacher> teachersMap = teachers.stream()
+                                        .collect(Collectors.toMap(Teacher::getId, teacher -> teacher));
+
+                                return studentRepository.findAllByCoursesIdList(coursesId)
+                                        .collectList()
+                                        .flatMap(studentViews -> {
+                                            Map<Long, List<Student>> studentsByCourseId = studentViews.stream()
+                                                    .collect(Collectors.groupingBy(CourseStudentsView::getCourseId,
+                                                            Collectors.mapping(studentMapper::toStudent, Collectors.toList())));
+
+                                            List<CourseDto> courseDtos = courses.stream()
+                                                    .map(course -> {
+                                                        CourseDto courseDto = courseMapper.toCourseDto(course);
+                                                        courseDto.setTeacher(teacherMapper.toTeacherDto(
+                                                                teachersMap.getOrDefault(course.getTeacherId(), null)
+                                                        ));
+
+                                                        List<StudentDto> studentDtoList = studentsByCourseId
+                                                                .getOrDefault(course.getId(), List.of())
+                                                                .stream()
+                                                                .map(studentMapper::toStudentDto)
+                                                                .toList();
+
+                                                        courseDto.setStudents(studentDtoList);
+                                                        return courseDto;
+                                                    })
+                                                    .toList();
+
+                                            return Mono.just(courseDtos);
+                                        });
+                            });
+                })
+                .flatMapMany(Flux::fromIterable);
     }
+
 
     @Override
     public Mono<Void> deleteById(Long id) {
@@ -81,6 +128,7 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.deleteById(id).then();
     }
 
+    @Transactional
     @Override
     public Mono<CourseDto> setTeacherToCourse(Long courseId, Long teacherId) {
         log.info("in setTeacherToCourse, courseId = {}, teacherId = {}", courseId, teacherId);
@@ -92,8 +140,8 @@ public class CourseServiceImpl implements CourseService {
                 .flatMap(tuple -> {
                     Course course = tuple.getT1();
                     Teacher teacher = tuple.getT2();
-                    return courseRepository.setTeacherToCourse(courseId, teacher)
-                            .thenReturn(course);
+                    course.setTeacherId(teacherId);
+                    return courseRepository.update(course);
                 })
                 .flatMap(this::fetchRelatedEntitiesForCourse)
                 .map(this::buildCourseDto);
@@ -119,9 +167,9 @@ public class CourseServiceImpl implements CourseService {
 
         CourseDto courseDto = courseMapper.toCourseDto(course);
         TeacherDto teacherDto = teacherMapper.toTeacherDto(teacher);
-        Set<StudentDto> studentsDto = students.stream()
+        List<StudentDto> studentsDto = students.stream()
                 .map(studentMapper::toStudentDto)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         courseDto.setTeacher(teacherDto);
         courseDto.setStudents(studentsDto);

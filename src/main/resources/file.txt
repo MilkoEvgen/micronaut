@@ -1,0 +1,1 @@
+java "-Dmicronaut.environments=dev" -jar target/student_micronaut-0.1.jar

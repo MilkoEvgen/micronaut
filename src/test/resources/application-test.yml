@@ -1,24 +1,19 @@
 micronaut:
-  application:
-    name: student_micronaut
-  test:
-    resources:
-      enabled: true
+  server:
+    port: -1
 
 flyway:
   datasources:
     default:
       enabled: true
+      url: ${FLYWAY_URL}
+      user: ${FLYWAY_USER}
+      password: ${FLYWAY_PASS}
 
-datasources:
-  default:
-    enabled: false
-
-jpa:
-  default:
-    reactive: true
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
+r2dbc:
+  datasources:
+    default:
+      url: ${R2DBC_URL}
+      username: ${R2DBC_USER}
+      password: ${R2DBC_PASS}
 

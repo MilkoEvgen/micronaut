@@ -4,22 +4,24 @@ import io.micronaut.data.annotation.GeneratedValue;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
-@ToString
-@MappedEntity(value = "students")
-public class Student {
+@NoArgsConstructor
+@AllArgsConstructor
+@MappedEntity(value = "course_student")
+public class CourseStudent {
     @Id
     @GeneratedValue(GeneratedValue.Type.IDENTITY)
     private Long id;
+    private Long courseId;
+    private Long studentId;
 
-    private String name;
-
-    private String email;
+    public CourseStudent(Long courseId, Long studentId) {
+        this.courseId = courseId;
+        this.studentId = studentId;
+    }
 }

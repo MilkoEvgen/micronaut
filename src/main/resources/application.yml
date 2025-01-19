@@ -1,37 +1,35 @@
 micronaut:
   application:
     name: student_micronaut
-  test:
-    resources:
-      enabled: true
+  netty:
+    event-loops:
+      boss:
+        num-threads: 1
+      worker:
+        num-threads: 8
+  server:
+    port: 8080
 
 flyway:
   datasources:
     default:
       enabled: true
-      url: jdbc:postgresql://localhost:5432/student
-      user: student
-      password: student
-
-datasources:
-  default:
-    enabled: false
+      url: ${FLYWAY_URL:`jdbc:postgresql://localhost:5432/student`}
+      user: ${FLYWAY_USER:student}
+      password: ${FLYWAY_PASS:student}
 
 r2dbc:
   datasources:
     default:
-      url: r2dbc:postgresql://localhost:5432/student
-      username: student
-      password: student
+      url: ${R2DBC_URL:`r2dbc:postgresql://localhost:5432/student`}
+      username: ${R2DBC_USER:student}
+      password: ${R2DBC_PASS:student}
+      options:
+        enable-transaction: true
 
-jpa:
-  default:
-    reactive: true
-    properties:
-      hibernate:
-        connection.url: postgresql://localhost:5432/student
-        connection.username: student
-        connection.password: student
-        show_sql: true
-        format_sql: true
-
+logging:
+  level: INFO
+  levels:
+    io.micronaut.data.connection: TRACE
+    io.micronaut.data.query: TRACE
+    io.micronaut.sql: TRACE
