@@ -15,6 +15,7 @@ import com.milko.repository.DepartmentRepository;
 import com.milko.repository.TeacherRepository;
 import com.milko.service.TeacherService;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -23,6 +24,7 @@ import reactor.util.function.Tuple3;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,7 @@ public class TeacherServiceImpl implements TeacherService {
                 .map(teacherMapper::toTeacherDto);
     }
 
+    @Transactional
     @Override
     public Mono<TeacherDto> update(TeacherDto dto) {
         log.info("in update, dto = {}", dto);
@@ -52,13 +55,13 @@ public class TeacherServiceImpl implements TeacherService {
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Teacher with ID " + dto.getId() + " not found")))
                 .flatMap(teacher -> {
                     teacherMapper.updateFromDto(dto, teacher);
-                    return teacherRepository.updateTeacher(dto.getId(), dto.getName())
-                            .thenReturn(teacher);
+                    return teacherRepository.update(teacher);
                 })
                 .flatMap(this::fetchRelatedEntitiesForTeacher)
                 .map(this::buildTeacherDto);
     }
 
+    @Transactional
     @Override
     public Mono<TeacherDto> findById(Long id) {
         log.info("in findById, id = {}", id);
@@ -68,13 +71,34 @@ public class TeacherServiceImpl implements TeacherService {
                 .map(this::buildTeacherDto);
     }
 
+    @Transactional
     @Override
     public Flux<TeacherDto> findAll() {
         log.info("in findAll");
 
         return teacherRepository.findAll()
-                .flatMap(this::fetchRelatedEntitiesForTeacher)
-                .map(this::buildTeacherDto);
+                .collectList()
+                .flatMap(teachers -> {
+                    List<Long> teachersId = teachers.stream()
+                            .map(Teacher::getId)
+                            .toList();
+                    return departmentRepository.findAllByHeadOfDepartmentIds(teachersId)
+                            .collectList()
+                            .flatMap(departments -> {
+                                Map<Long, Department> departmentMap = departments.stream()
+                                        .collect(Collectors.toMap(Department::getHeadOfDepartmentId, department -> department));
+
+                                List<TeacherDto> teacherDtos = teachers.stream()
+                                        .map(teacher -> {
+                                            TeacherDto teacherDto = teacherMapper.toTeacherDto(teacher);
+                                            Department department = departmentMap.get(teacher.getId());
+                                            DepartmentDto departmentDto = department == null ? null : departmentMapper.toDepartmentDto(department);
+                                            teacherDto.setDepartment(departmentDto);
+                                            return teacherDto;
+                                        }).toList();
+                                return Mono.just(teacherDtos);
+                            });
+                }).flatMapMany(Flux::fromIterable);
     }
 
     @Override
@@ -106,9 +130,9 @@ public class TeacherServiceImpl implements TeacherService {
 
         TeacherDto teacherDto = teacherMapper.toTeacherDto(teacher);
         DepartmentDto departmentDto = departmentMapper.toDepartmentDto(department);
-        Set<CourseDto> courseDtos = courses.stream()
+        List<CourseDto> courseDtos = courses.stream()
                 .map(courseMapper::toCourseDto)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         teacherDto.setDepartment(departmentDto);
         teacherDto.setCourses(courseDtos);

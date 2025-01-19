@@ -9,9 +9,10 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "jsr330")
 public interface DepartmentMapper {
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "headOfDepartment", ignore = true)
+    @Mapping(target = "headOfDepartmentId", ignore = true)
     void updateFromDto(DepartmentDto dto, @MappingTarget Department department);
 
+    @Mapping(target = "headOfDepartmentId", ignore = true)
     Department toDepartment(DepartmentDto dto);
 
     @Mapping(target = "headOfDepartment", ignore = true)

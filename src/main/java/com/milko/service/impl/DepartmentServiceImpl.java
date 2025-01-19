@@ -9,16 +9,18 @@ import com.milko.model.Department;
 import com.milko.model.Teacher;
 import com.milko.repository.DepartmentRepository;
 import com.milko.repository.TeacherRepository;
-import com.milko.repository.impl.CustomRepositoryImpl;
 import com.milko.service.DepartmentService;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -37,6 +39,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .map(departmentMapper::toDepartmentDto);
     }
 
+    @Transactional
     @Override
     public Mono<DepartmentDto> update(DepartmentDto dto) {
         log.info("in update, dto = {}", dto);
@@ -44,13 +47,13 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Department with ID " + dto.getId() + " not found")))
                 .flatMap(department -> {
                     departmentMapper.updateFromDto(dto, department);
-                    return departmentRepository.updateDepartment(dto.getId(), dto.getName())
-                            .thenReturn(department);
+                    return departmentRepository.update(department);
                 })
                 .flatMap(this::fetchRelatedEntitiesForDepartment)
                 .map(this::buildDepartmentDto);
     }
 
+    @Transactional
     @Override
     public Mono<DepartmentDto> findById(Long id) {
         log.info("in findById, id = {}", id);
@@ -60,12 +63,34 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .map(this::buildDepartmentDto);
     }
 
+    @Transactional
     @Override
     public Flux<DepartmentDto> findAll() {
         log.info("in findAll");
         return departmentRepository.findAll()
-                .flatMap(this::fetchRelatedEntitiesForDepartment)
-                .map(this::buildDepartmentDto);
+                .collectList()
+                .flatMap(departments -> {
+                    List<Long> departmentsId = departments.stream()
+                            .map(Department::getId)
+                            .toList();
+
+                    return teacherRepository.findAllByDepartmentsIdList(departmentsId)
+                            .collectList()
+                            .flatMap(teachers -> {
+                                Map<Long, Teacher> teacherMap = teachers.stream()
+                                        .collect(Collectors.toMap(Teacher::getId, teacher -> teacher));
+
+                                return Mono.just(departments.stream()
+                                        .map(department -> {
+                                            DepartmentDto departmentDto = departmentMapper.toDepartmentDto(department);
+                                            Teacher teacher = teacherMap.get(department.getHeadOfDepartmentId());
+                                            TeacherDto teacherDto = teacher != null ? teacherMapper.toTeacherDto(teacher) : null;
+                                            departmentDto.setHeadOfDepartment(teacherDto);
+                                            return departmentDto;
+                                        }).toList());
+                            });
+
+                }).flatMapMany(Flux::fromIterable);
     }
 
     @Override
@@ -74,6 +99,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentRepository.deleteById(id).then();
     }
 
+    @Transactional
     @Override
     public Mono<DepartmentDto> setTeacherToDepartment(Long departmentId, Long teacherId) {
         log.info("in setTeacherToDepartment, departmentId = {}, teacherId = {}", departmentId, teacherId);
@@ -84,17 +110,17 @@ public class DepartmentServiceImpl implements DepartmentService {
         return Mono.zip(departmentMono, teacherMono)
                 .flatMap(tuple -> {
                     Department department = tuple.getT1();
-                    Teacher teacher = tuple.getT2();
+                    department.setHeadOfDepartmentId(teacherId);
 
-                    return departmentRepository.setTeacherToDepartment(departmentId, teacher)
-                            .thenReturn(department)
+                    return departmentRepository.update(department)
                             .flatMap(this::fetchRelatedEntitiesForDepartment)
                             .map(this::buildDepartmentDto);
                 });
     }
 
     private Mono<Tuple2<Department, Teacher>> fetchRelatedEntitiesForDepartment(Department department) {
-        Mono<Teacher> teacherMono = teacherRepository.findByDepartmentId(department.getId());
+        Mono<Teacher> teacherMono = teacherRepository.findByDepartmentId(department.getId())
+                .defaultIfEmpty(new Teacher());
 
         return Mono.zip(
                 Mono.just(department),
