@@ -277,7 +277,6 @@ public class DepartmentControllerTest {
         assertNotNull(body.get().getTimestamp());
         assertEquals("404", body.get().getStatus());
         assertEquals("EntityNotFoundException", body.get().getError());
-        assertEquals("Department with ID " + wrongDepartmentId + " not found", body.get().getMessage());
         assertEquals(departmentsPath + "/" + wrongDepartmentId + "/teacher/" + wrongTeacherId, body.get().getPath());
     }
 

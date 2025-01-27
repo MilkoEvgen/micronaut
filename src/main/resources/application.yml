@@ -3,10 +3,7 @@ micronaut:
     name: student_micronaut
   netty:
     event-loops:
-      boss:
-        num-threads: 1
-      worker:
-        num-threads: 8
+      threads: 16
   server:
     port: 8080
 
@@ -21,15 +18,18 @@ flyway:
 r2dbc:
   datasources:
     default:
+      driver: pool
+      protocol: postgresql
       url: ${R2DBC_URL:`r2dbc:postgresql://localhost:5432/student`}
       username: ${R2DBC_USER:student}
       password: ${R2DBC_PASS:student}
-      options:
-        enable-transaction: true
+      pool:
+        initial-size: 20
+        max-size: 50
 
-logging:
-  level: INFO
-  levels:
-    io.micronaut.data.connection: TRACE
-    io.micronaut.data.query: TRACE
-    io.micronaut.sql: TRACE
+
+
+
+
+
+

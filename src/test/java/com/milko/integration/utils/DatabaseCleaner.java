@@ -3,9 +3,12 @@ package com.milko.integration.utils;
 import io.r2dbc.spi.ConnectionFactory;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+@Slf4j
 @Singleton
 @RequiredArgsConstructor
 public class DatabaseCleaner {
@@ -22,7 +25,9 @@ public class DatabaseCleaner {
                                         .add("TRUNCATE TABLE departments RESTART IDENTITY CASCADE")
                                         .execute())
                                 .then()
-                                .doFinally(signal -> connection.close())
+                                .publishOn(Schedulers.boundedElastic())
+                                .doFinally(signal -> Mono.from(connection.close()).subscribe())
                 );
     }
+
 }

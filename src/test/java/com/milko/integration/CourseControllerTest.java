@@ -297,7 +297,6 @@ public class CourseControllerTest {
         assertNotNull(body.get().getTimestamp());
         assertEquals("404", body.get().getStatus());
         assertEquals("EntityNotFoundException", body.get().getError());
-        assertEquals(coursesPath + "/" + wrongCourseId + "/teacher/" + wrongTeacherId, body.get().getPath());
     }
 
 

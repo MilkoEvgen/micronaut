@@ -18,7 +18,6 @@ import com.milko.repository.StudentRepository;
 import com.milko.repository.TeacherRepository;
 import com.milko.service.StudentService;
 import jakarta.inject.Singleton;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -49,7 +48,6 @@ public class StudentServiceImpl implements StudentService {
                 .map(studentMapper::toStudentDto);
     }
 
-    @Transactional
     @Override
     public Flux<StudentDto> findAll() {
         log.info("in findAll");
@@ -99,17 +97,15 @@ public class StudentServiceImpl implements StudentService {
                 }).flatMapMany(Flux::fromIterable);
     }
 
-    @Transactional
     @Override
     public Mono<StudentDto> findById(Long id) {
-        log.info("in findById, id = {}", id);
         return studentRepository.findById(id)
                 .switchIfEmpty(Mono.error(new EntityNotFoundException("Student with ID " + id + " not found")))
                 .flatMap(this::fetchRelatedEntitiesForStudent)
                 .map(this::buildStudentDto);
     }
 
-    @Transactional
+
     @Override
     public Flux<CourseDto> findAllCoursesByStudentId(Long id) {
         log.info("in findAllCoursesByStudentId, id = {}", id);
@@ -126,7 +122,6 @@ public class StudentServiceImpl implements StudentService {
         return courseDto;
     }
 
-    @Transactional
     @Override
     public Mono<StudentDto> update(StudentDto dto) {
         log.info("in update, dto = {}", dto);
@@ -146,7 +141,6 @@ public class StudentServiceImpl implements StudentService {
                 .then();
     }
 
-    @Transactional
     @Override
     public Mono<StudentDto> addCourseToStudent(Long studentId, Long courseId) {
         log.info("in addCourseToStudent, studentId = {}, courseId = {}", studentId, courseId);

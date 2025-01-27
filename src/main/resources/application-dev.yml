@@ -3,26 +3,26 @@ micronaut:
     name: student_micronaut
   netty:
     event-loops:
-      boss:
-        num-threads: 1
-      worker:
-        num-threads: 8
+      threads: 16
   server:
     port: 8081
-
 
 flyway:
   datasources:
     default:
       enabled: true
-      url: jdbc:postgresql://localhost:5432/student
-      user: student
-      password: student
+      url: ${FLYWAY_URL:`jdbc:postgresql://localhost:5432/student`}
+      user: ${FLYWAY_USER:student}
+      password: ${FLYWAY_PASS:student}
 
 r2dbc:
   datasources:
     default:
-      url: r2dbc:postgresql://localhost:5432/student
-      username: student
-      password: student
-
+      driver: pool
+      protocol: postgresql
+      url: ${R2DBC_URL:`r2dbc:postgresql://localhost:5432/student`}
+      username: ${R2DBC_USER:student}
+      password: ${R2DBC_PASS:student}
+      pool:
+        initial-size: 5
+        max-size: 10

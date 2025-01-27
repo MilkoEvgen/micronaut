@@ -13,7 +13,10 @@ flyway:
 r2dbc:
   datasources:
     default:
+      driver: pool
+      protocol: postgresql
       url: ${R2DBC_URL}
       username: ${R2DBC_USER}
       password: ${R2DBC_PASS}
+
 

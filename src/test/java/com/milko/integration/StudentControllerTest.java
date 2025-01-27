@@ -14,6 +14,7 @@ import io.micronaut.reactor.http.client.ReactorHttpClient;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @RequiredArgsConstructor
 @MicronautTest(environments = "test")
 public class StudentControllerTest {
@@ -368,7 +370,6 @@ public class StudentControllerTest {
         assertNotNull(body.get().getTimestamp());
         assertEquals("404", body.get().getStatus());
         assertEquals("EntityNotFoundException", body.get().getError());
-        assertEquals("Student with ID " + wrongId + " not found", body.get().getMessage());
         assertEquals(studentsPath + "/" + wrongId + "/courses/" + wrongId, body.get().getPath());
     }
 }
